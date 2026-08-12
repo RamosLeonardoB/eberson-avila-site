@@ -8,7 +8,7 @@ const TIPOS_EVENTO = [
 ];
 
 const WHATSAPP_NUMERO = "5581900000000"; // 55 + DDD + número
-const FORMSUBMIT_EMAIL = "SEU-EMAIL@dominio.com";
+const FORMSUBMIT_EMAIL = "leosomar77@gmail.com";
 
 export default function BookingForm() {
   const [enviando, setEnviando] = useState(false);
