@@ -10,7 +10,8 @@ const FOTOS = [
   { src: "/images/galeria/show-01.webp", legenda: "Show acústico — Recife" },
   { src: "/images/galeria/show-02.webp", legenda: "Evento corporativo" },
   { src: "/images/galeria/show-03.webp", legenda: "Casamento — Olinda" },
-  { src: "/images/galeria/show-04.webp", legenda: "Festival de Garanhuns" },
+  { src: "/images/galeria/show-04.webp", legenda: "Capa disco" },
+  { src: "/images/galeria/show-05.webp", legenda: "Festival de Garanhuns" },
 ];
 
 export default function Gallery() {
