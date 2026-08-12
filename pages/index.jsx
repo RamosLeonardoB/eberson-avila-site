@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Éberson Ávila — Música ao vivo</title>
+        <title>xÉberson Ávila — Música ao vivo</title>
         <meta
           name="description"
           content="Éberson Ávila, cantor, instrumentista e compositor pernambucano. Shows particulares, corporativos e públicos. Confira a agenda e contrate."
