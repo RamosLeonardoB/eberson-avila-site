@@ -50,21 +50,32 @@ Acesse `http://localhost:3000`. Sem as variáveis de ambiente configuradas, a se
 
 ---
 
-## 2. Conectar a Agenda ao Google Agenda real
+## 2. Conectar a Agenda a uma planilha do Google Sheets
 
-**Regra de negócio:** o artista continua usando o Google Agenda normalmente pelo celular. Todo evento que deve aparecer no site precisa conter a tag **`#EbersonAoVivo`** no título ou na descrição.
+**Por que planilha em vez de Google Agenda:** sem risco de misturar compromissos pessoais do artista com shows, sem precisar lembrar de marcar uma etiqueta em cada evento, e sem exigir projeto/chave de API no Google Cloud — a rota serverless só lê um CSV público.
 
 ### Passo a passo
 
-1. **Crie uma agenda dedicada** (recomendado) em [calendar.google.com](https://calendar.google.com) — mais fácil de deixar pública sem expor a rotina pessoal do artista.
-2. **Torne-a pública**: Configurações da agenda → Permissões de acesso → "Disponibilizar publicamente".
-3. **Copie o ID da agenda**: mesma tela → "Integrar agenda" → *ID da agenda* (formato `algumacoisa@group.calendar.google.com`).
-4. **Crie uma chave de API** no [Google Cloud Console](https://console.cloud.google.com/):
-   - Ative a **Google Calendar API**.
-   - Em Credenciais → Criar credenciais → Chave de API.
-   - **Restrinja a chave por IP** (não por referenciador HTTP, já que a chamada acontece no servidor da Vercel, não no navegador do visitante) — ou deixe sem restrição de IP e apenas restrinja por API (Calendar API) se a Vercel não expuser IPs fixos no seu plano.
-5. **Marcar um show**: crie o evento no Google Agenda com título, data, horário e local, incluindo a tag em qualquer lugar do título ou da descrição — ex.: `Casamento Ana & João #EbersonAoVivo`.
-6. A rota `/api/agenda` busca eventos futuros, filtra pela tag, remove a tag do texto exibido e devolve um JSON limpo pro componente `Agenda.jsx`.
+**a) Crie a planilha** em [sheets.google.com](https://sheets.google.com) com estas colunas na primeira linha (qualquer ordem, o parser identifica pelo nome):
+
+| Data | Horário | Título | Local | Status |
+|---|---|---|---|---|
+| 17/08/2026 | 20:00 | Show acústico — Bar do Vinho | Boa Viagem, Recife/PE | Confirmado |
+| 25/08/2026 | | Festival de Inverno | Garanhuns/PE | |
+| 30/08/2026 | 21:00 | Show cancelado | Olinda/PE | Cancelado |
+
+- **Data**: `DD/MM/AAAA` (ex.: `17/08/2026`) — também aceita `AAAA-MM-DD`.
+- **Horário**: `HH:MM`. Em branco = evento de dia inteiro.
+- **Status**: em branco ou `Confirmado` = aparece no site. `Cancelado` ou `Rascunho` = fica oculto sem apagar a linha.
+- Eventos com data passada somem automaticamente da lista.
+
+**b) Publique como CSV**: **Arquivo → Compartilhar → Publicar na Web** → selecione a aba → formato **CSV** → **Publicar**. Copie o link gerado (termina em `output=csv`).
+
+**c) Configure a variável de ambiente** (ver seção 3).
+
+A rota `/api/agenda.js` busca o CSV, filtra por data futura e status, ordena, e devolve os próximos shows já tratados para o componente `Agenda.jsx`. Um cache simples em memória de 5 minutos evita bater na planilha a cada carregamento de página.
+
+> **Nota técnica:** a extensão `next: { revalidate }` do `fetch`, comum em exemplos de cache do Next.js, é pensada para o App Router e se mostrou instável dentro de uma API Route do Pages Router neste projeto (testado e confirmado: retornava erro de fetch mesmo com a URL acessível). Por isso o cache aqui é feito manualmente com uma variável em memória — mais simples, mais previsível, e sem depender de comportamento não documentado para esse cenário.
 
 ---
 
@@ -74,10 +85,11 @@ No painel do projeto: **Settings → Environment Variables**
 
 | Nome | Valor |
 |---|---|
-| `GOOGLE_CALENDAR_ID` | ID da agenda pública |
-| `GOOGLE_API_KEY` | Chave de API do Google Cloud |
+| `GOOGLE_SHEETS_CSV_URL` | Link CSV publicado da planilha (passo 2b) |
 
-Sem essas variáveis, a rota devolve automaticamente uma agenda de demonstração — o site nunca fica com a seção quebrada ou vazia por falta de configuração.
+Sem essa variável, a rota devolve automaticamente uma agenda de demonstração — o site nunca fica com a seção quebrada ou vazia por falta de configuração.
+
+> **Sobre o formulário de contato (seção 6):** ele continua usando o FormSubmit por enquanto. Essa peça está em avaliação — se a decisão for trocar por algo que não dependa de um serviço terceiro (ex.: uma rota serverless própria com um provedor de e-mail transacional, ou Google Apps Script), essa seção é atualizada junto.
 
 ---
 
@@ -108,7 +120,7 @@ No primeiro envio de teste, o FormSubmit manda um e-mail de confirmação — cl
 
 1. Suba este projeto para um repositório no GitHub.
 2. Em [vercel.com/new](https://vercel.com/new), importe o repositório (o framework Next.js é detectado automaticamente).
-3. Configure `GOOGLE_CALENDAR_ID` e `GOOGLE_API_KEY` em Environment Variables antes do primeiro deploy.
+3. Configure `GOOGLE_SHEETS_CSV_URL` em Environment Variables antes do primeiro deploy.
 4. Cada push na branch principal gera um deploy de produção automático.
 
 ---
@@ -116,5 +128,7 @@ No primeiro envio de teste, o FormSubmit manda um e-mail de confirmação — cl
 ## Validação feita neste projeto
 
 - `npm run build` → compila sem erros (`✓ Compiled successfully`)
-- `npm run start` + `curl /api/agenda` → confirma que o fallback de demonstração funciona sem credenciais configuradas
+- `npm run start` + `curl /api/agenda` sem `GOOGLE_SHEETS_CSV_URL` → confirma que o fallback de demonstração funciona sem configuração
+- Teste ponta a ponta com uma planilha simulada (CSV servido localmente) cobrindo: campo com vírgula dentro de aspas, cabeçalho com acento, linha vazia, evento com data passada (deve sumir), evento com Status "Cancelado" (deve sumir), Status em branco (deve aparecer), Status "confirmado" em minúsculo (deve aparecer), e ordenação por data — todos os casos passaram
+- Confirmado que o cache em memória funciona (segunda chamada retorna `source: "google-sheets-cache"`)
 - Todas as seções obrigatórias do briefing estão presentes: Header fixo, Hero fullscreen, Agenda integrada, Galeria com zoom, Formulário B2B, Footer
