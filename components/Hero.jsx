@@ -16,7 +16,7 @@ export default function Hero() {
       {/* Conteúdo */}
       <div className="relative z-10 flex flex-col items-center px-6 text-center">
         <p className="mb-4 text-xs md:text-sm font-semibold uppercase tracking-widest25 text-brand-light">
-          Música ao vivo · Pernambuco
+          xMúsica ao vivo · Pernambuco
         </p>
         <h1 className="font-black uppercase leading-[0.95] text-white text-5xl sm:text-6xl md:text-8xl">
           Éberson
